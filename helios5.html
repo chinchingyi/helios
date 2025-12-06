@@ -67,9 +67,8 @@
 </head>
 <body>
     <div id="app-title">
-        <h1>Helios 3D <span class="version-tag">v5.1</span></h1>
-        
-    </div>
+        <h1>Helios 3D <span class="version-tag">v5</span></h1>
+     </div>
     <div id="canvas-container"></div>
     <div id="tooltip"></div>
 
@@ -203,7 +202,7 @@
         scene.add(sun);
         interactionObjects.push(sun);
 
-        // 行星與衛星資料（介紹完整）
+        // 行星與衛星資料
         const planetsConfig = [
             { name: "水星", r: 3.5, d: 50, s: 0.02, c1: "#aaaaaa", c2: "#888888", type: "noise", desc: "<b>水星 (Mercury)：</b><br>水星是太陽系中最小且最靠近太陽的行星。由於缺乏大氣層保護，其晝夜溫差極大，白天可達 430°C，夜晚降至 -180°C。表面佈滿隕石坑，外觀與月球相似。" },
             { name: "金星", r: 5.8, d: 80, s: 0.012, c1: "#e6db99", c2: "#d4c472", type: "noise", desc: "<b>金星 (Venus)：</b><br>金星被厚厚的二氧化碳大氣層覆蓋，產生失控的溫室效應，表面溫度高達 465°C，是太陽系最熱的行星。它的自轉方向與其他行星相反（逆向自轉）。" },
@@ -242,8 +241,6 @@
 
         const planetMeshes = {};
         const moonData = [];
-
-        // 永遠朝向鏡頭的標籤
         const labels = {};
 
         function createLabel(text) {
@@ -271,7 +268,6 @@
             label.style.opacity = Math.min(1, 900 / distance);
         }
 
-        // 建立行星與衛星
         planetsConfig.forEach(p => {
             const orbitGeo = new THREE.RingGeometry(p.d - 0.2, p.d + 0.2, 128);
             orbitGeo.rotateX(-Math.PI/2);
@@ -285,7 +281,6 @@
             interactionObjects.push(mesh);
             planetMeshes[p.name] = mesh;
 
-            // 標籤
             labels[mesh.id] = createLabel(p.name);
 
             if(p.ring) {
@@ -325,7 +320,6 @@
                     interactionObjects.push(mMesh);
                     moonData.push({ mesh: mMesh, parent: mesh });
 
-                    // 主要衛星也加標籤
                     if (moon.size > 0.7) {
                         labels[mMesh.id] = createLabel(moon.name);
                     }
@@ -333,17 +327,24 @@
             }
         });
 
-        // 地球月球
+        // 地球的月球（只建立一次）
         const earthObj = planetMeshes["地球"];
         const mTex = createTexture("noise", "#dddddd", "#999999");
         const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(1.5, 32, 32), new THREE.MeshStandardMaterial({map: mTex}));
-        moonMesh.userData = { name: "月球", type: "衛星", desc: "<b>月球 (The Moon)：</b><br>地球唯一的天然衛星。它被地球潮汐鎖定，永遠以同一面朝向我們。月球對地球的潮汐和自轉軸穩定起著至關重要的作用。" };
+        moonMesh.userData = { 
+            name: "月球", 
+            type: "衛星", 
+            desc: "<b>月球 (The Moon)：</b><br>地球唯一的天然衛星。它被地球潮汐鎖定，永遠以同一面朝向我們。月球對地球的潮汐和自轉軸穩定起著至關重要的作用。", 
+            moonDist: 12, 
+            moonSpeed: 0.05, 
+            moonAngle: 0 
+        };
         scene.add(moonMesh);
         interactionObjects.push(moonMesh);
-        moonData.push({ mesh: moonMesh, parent: earthObj, moonDist: 12, moonSpeed: 0.05, moonAngle: 0 });
+        moonData.push({ mesh: moonMesh, parent: earthObj });
         labels[moonMesh.id] = createLabel("月球");
 
-        // 互動與動畫
+        // 互動與動畫（不變）
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         const tooltip = document.getElementById('tooltip');
@@ -415,9 +416,7 @@
 
         document.getElementById('reset-camera').onclick = closeModal;
 
-        document.getElementById('show-labels').onchange = function() {
-            // 在 animate() 中會自動處理顯示/隱藏
-        };
+        document.getElementById('show-labels').onchange = function() { };
 
         function animate() {
             requestAnimationFrame(animate);
@@ -435,8 +434,8 @@
 
                 moonData.forEach(data => {
                     const m = data.mesh;
-                    const dist = data.moonDist || m.userData.moonDist || 12;
-                    const speed = data.moonSpeed || m.userData.moonSpeed || 0.05;
+                    const dist = m.userData.moonDist || 12;
+                    const speed = m.userData.moonSpeed || 0.05;
                     m.userData.moonAngle += speed * timeScale;
                     const parentPos = new THREE.Vector3();
                     data.parent.getWorldPosition(parentPos);
@@ -444,7 +443,6 @@
                 });
             }
 
-            // 更新所有標籤
             Object.keys(labels).forEach(id => {
                 const mesh = scene.getObjectById(parseInt(id));
                 if (mesh) {
@@ -474,4 +472,3 @@
     </script>
 </body>
 </html>
-
